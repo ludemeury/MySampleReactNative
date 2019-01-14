@@ -8,6 +8,8 @@ export default class Main extends Component{
     };
 
     state = {
+        productInfo: {},
+        page: 1,
         docs: [],
     };
 
@@ -15,12 +17,24 @@ export default class Main extends Component{
         this.loadProducts();
     }
 
-    loadProducts = async () =>{
-        const response = await api.get("/products");
+    loadProducts = async (page = 1) =>{
+        const response = await api.get(`/products?page=${page}`);
         
-        const {docs} = response.data;
+        const {docs, ...productInfo} = response.data;
 
-        this.setState({docs});
+        this.setState({docs: [...this.state.docs, ...docs], 
+            productInfo,
+            page
+        });
+    }
+
+    loadMore = () => {
+        const {page, productInfo} = this.state;
+
+        if(page == productInfo.pages) return;
+
+        const pageNumber = page + 1;
+        this.loadProducts(pageNumber);
     }
 
     renderItem = ({item}) => (
@@ -28,7 +42,11 @@ export default class Main extends Component{
             <Text style={styles.productTitle}>{item.title}</Text>
             <Text style={styles.productDescription}>{item.description}</Text>
 
-            <TouchableOpacity style={styles.productButton} onPress={() => {}}>
+            <TouchableOpacity 
+                style={styles.productButton} 
+                onPress={() => {
+                    this.props.navigation.navigate("Product", {product: item});
+                }}>
                 <Text style={styles.productButtonText}>Acessar</Text>
             </TouchableOpacity>
         </View>
@@ -41,7 +59,9 @@ export default class Main extends Component{
                     contentContainerStyle ={styles.list}
                     data={this.state.docs} 
                     keyExtractor={item => item._id}
-                    renderItem={this.renderItem}/>
+                    renderItem={this.renderItem}
+                    onEndReached={this.loadMore}
+                    onEndReachedThreshold={0.1}/>
             </View>
         );
     }
